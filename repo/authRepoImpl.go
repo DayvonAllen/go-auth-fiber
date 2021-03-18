@@ -22,7 +22,10 @@ func(a AuthRepoImpl) Login(email, password string) (*domain.User, string, error)
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 
 	if err == nil {
-		token, _ := login.GenerateJWT(user)
+		token, err := login.GenerateJWT(user)
+		if err != nil {
+			return nil, "", err
+		}
 		return &user, token, nil
 	}
 

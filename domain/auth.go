@@ -107,7 +107,7 @@ func(l Authentication) IsLoggedIn(cookie string) (*Authentication, error)  {
 
 		l.Id = claims.Id
 		l.Email = claims.Email
-		return &l, err
+		return &l, nil
 	}
 
 	return nil, fmt.Errorf("token is not valid")

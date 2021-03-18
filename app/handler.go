@@ -99,6 +99,8 @@ func (ch *Handlers) Login( email string, password string, c *fiber.Ctx) (*domain
 
 	signedToken = append(signedToken, t...)
 
+	fmt.Println(string(signedToken))
+
 	cookie := new(fiber.Cookie)
 	cookie.Name = "session"
 	cookie.Value = string(signedToken)

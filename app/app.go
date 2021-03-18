@@ -13,12 +13,9 @@ import (
 )
 
 func Start() {
-
 	// wiring everything up
 	ch := Handlers{userService: services.NewUserService(repo.NewUserRepoImpl()),
 		authService: services.NewAuthService(repo.NewAuthRepoImpl())}
-
-	//router.HandleFunc("/users/{id}", ch.DeleteByID).Methods(http.MethodDelete)
 
 	app := fiber.New()
 
@@ -27,8 +24,10 @@ func Start() {
 
 		u, err := ch.getAllUsers(cookie)
 		if err != nil {
+			c.Status(400)
 			return err
 		}
+		c.Status(200)
 		return c.JSON(u)
 	})
 
@@ -44,8 +43,10 @@ func Start() {
 
 		u, err := ch.GetUserByID(cookie, newId)
 		if err != nil {
+			c.Status(400)
 			return err
 		}
+		c.Status(200)
 		return c.JSON(u)
 	})
 
@@ -58,9 +59,11 @@ func Start() {
 
 		err := ch.CreateUser(*user)
 		for err != nil {
+			c.Status(400)
 			return fmt.Errorf("error...")
 		}
 
+		c.Status(201)
 		return c.SendString("Success...")
 	})
 
@@ -73,9 +76,11 @@ func Start() {
 
 		_, err := ch.Login(details.Email, details.Password, c)
 		for err != nil {
+			c.Status(401)
 			return fmt.Errorf("error...")
 		}
 
+		c.Status(200)
 		return c.SendString("Logged in")
 	})
 
@@ -97,13 +102,16 @@ func Start() {
 
 		err = ch.UpdateUser(newId, *user, cookie)
 		for err != nil {
+			c.Status(400)
 			return fmt.Errorf("error...")
 		}
 
+		c.Status(200)
 		return c.SendString("Success...")
 	})
 
 	app.Delete("/users/:id", func(c *fiber.Ctx) error {
+		c.Status(204)
 		cookie := c.Cookies("session")
 
 		id := c.Params("id")
@@ -115,14 +123,15 @@ func Start() {
 
 		err = ch.DeleteByID(cookie, newId)
 		if err != nil {
+			c.Status(400)
 			return err
 		}
 
+		c.Status(204)
 		return c.SendString("Success...")
 	})
 
 	log.Fatal(app.Listen(":8080"))
-
 }
 
 
