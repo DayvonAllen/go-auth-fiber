@@ -44,7 +44,7 @@ func Start() {
 		u, err := ch.GetUserByID(cookie, newId)
 		if err != nil {
 			c.Status(400)
-			return err
+			return fmt.Errorf("error...%w",  err)
 		}
 		c.Status(200)
 		return c.JSON(u)
@@ -60,7 +60,7 @@ func Start() {
 		err := ch.CreateUser(*user)
 		for err != nil {
 			c.Status(400)
-			return fmt.Errorf("error...")
+			return fmt.Errorf("error...%w",  err)
 		}
 
 		c.Status(201)
@@ -77,7 +77,7 @@ func Start() {
 		_, err := ch.Login(details.Email, details.Password, c)
 		for err != nil {
 			c.Status(401)
-			return fmt.Errorf("error...")
+			return fmt.Errorf("error...%w",  err)
 		}
 
 		c.Status(200)
@@ -102,7 +102,7 @@ func Start() {
 
 		err = ch.UpdateUser(newId, *user, cookie)
 		for err != nil {
-			c.Status(400)
+			c.Status(500)
 			return fmt.Errorf("error...")
 		}
 
@@ -111,7 +111,6 @@ func Start() {
 	})
 
 	app.Delete("/users/:id", func(c *fiber.Ctx) error {
-		c.Status(204)
 		cookie := c.Cookies("session")
 
 		id := c.Params("id")
@@ -123,7 +122,7 @@ func Start() {
 
 		err = ch.DeleteByID(cookie, newId)
 		if err != nil {
-			c.Status(400)
+			c.Status(500)
 			return err
 		}
 

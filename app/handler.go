@@ -64,7 +64,10 @@ func (ch *Handlers) UpdateUser(id primitive.ObjectID, user domain.User, cookie s
 		return err
 	}
 
-	_, _ = ch.userService.UpdateUser(id, &user)
+	_, err = ch.userService.UpdateUser(id, &user)
+	if err != nil {
+		return fmt.Errorf("error: %w", err)
+	}
 
 	return nil
 }
@@ -98,8 +101,6 @@ func (ch *Handlers) Login( email string, password string, c *fiber.Ctx) (*domain
 	t, err := auth.SignToken([]byte(token))
 
 	signedToken = append(signedToken, t...)
-
-	fmt.Println(string(signedToken))
 
 	cookie := new(fiber.Cookie)
 	cookie.Name = "session"

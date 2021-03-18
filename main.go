@@ -5,7 +5,6 @@ import (
 	"example.com/app/database"
 )
 
-
 func init() {
 	// create database connection instance for first time
 	_ = database.GetInstance()

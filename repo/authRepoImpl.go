@@ -17,19 +17,21 @@ func(a AuthRepoImpl) Login(email, password string) (*domain.User, string, error)
 	var login domain.Authentication
 	var user domain.User
 	opts := options.FindOne()
-	_ = dbConnection.Collection.FindOne(context.TODO(), bson.D{{"email", email}},opts).Decode(&user)
+	_ = dbConnection.Collection.FindOne(context.TODO(), bson.D{{"email",
+		email}},opts).Decode(&user)
 
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 
-	if err == nil {
-		token, err := login.GenerateJWT(user)
-		if err != nil {
-			return nil, "", err
-		}
-		return &user, token, nil
+	if err != nil {
+		return nil, "", fmt.Errorf("error logging in")
 	}
 
-	return nil, "", fmt.Errorf("error logging in")
+	token, err := login.GenerateJWT(user)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return &user, token, nil
 }
 
 func NewAuthRepoImpl() AuthRepoImpl {

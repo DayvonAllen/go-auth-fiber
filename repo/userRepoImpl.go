@@ -4,6 +4,7 @@ import (
 	"context"
 	"example.com/app/database"
 	"example.com/app/domain"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -21,14 +22,17 @@ func (u UserRepoImpl) Create(user *domain.User) error {
 	user.Id = primitive.NewObjectID()
 	_, err := dbConnection.Collection.InsertOne(context.TODO(), &user)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("error: %w", err)
 	}
 	return nil
 }
 
 func (u UserRepoImpl) FindAll() (*[]domain.User, error) {
 	// Get all users
-	cur, _ := dbConnection.Collection.Find(context.TODO(), bson.M{})
+	cur, err := dbConnection.Collection.Find(context.TODO(), bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("error: %w", err)
+	}
 
 	// Finding multiple documents returns a cursor
 	// Iterating through the cursor allows us to decode documents one at a time
@@ -38,7 +42,7 @@ func (u UserRepoImpl) FindAll() (*[]domain.User, error) {
 		var elem domain.User
 		err := cur.Decode(&elem)
 		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("error: %w", err)
 		}
 
 		u.users = append(u.users, elem)
@@ -65,13 +69,17 @@ func (u UserRepoImpl) UpdateByID(id primitive.ObjectID, user *domain.User) (*dom
 	filter := bson.D{{"_id", id}}
 	update := bson.D{{"$set", bson.D{{"Email", user.Email}}}}
 
-	_ = database.GetInstance().Collection.FindOneAndUpdate(context.TODO(), filter, update, opts).Decode(&u.users)
+	_ = database.GetInstance().Collection.FindOneAndUpdate(context.TODO(),
+		filter, update, opts).Decode(&u.users)
 
 	return &u.user, nil
 }
 
 func (u UserRepoImpl) DeleteByID(id primitive.ObjectID) error {
-	_, _ = database.GetInstance().Collection.DeleteOne(context.TODO(), bson.D{{"_id", id}})
+	_, err := database.GetInstance().Collection.DeleteOne(context.TODO(), bson.D{{"_id", id}})
+	if err != nil {
+		return fmt.Errorf("error: %w", err)
+	}
 	return nil
 }
 
