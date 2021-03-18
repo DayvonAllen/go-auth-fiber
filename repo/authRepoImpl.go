@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"example.com/app/domain"
-	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
@@ -17,16 +16,21 @@ func(a AuthRepoImpl) Login(email, password string) (*domain.User, string, error)
 	var login domain.Authentication
 	var user domain.User
 	opts := options.FindOne()
-	_ = dbConnection.Collection.FindOne(context.TODO(), bson.D{{"email",
+	err := dbConnection.Collection.FindOne(context.TODO(), bson.D{{"email",
 		email}},opts).Decode(&user)
 
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return nil, "", err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 
 	if err != nil {
-		return nil, "", fmt.Errorf("error logging in")
+		return nil, "", err
 	}
 
 	token, err := login.GenerateJWT(user)
+
 	if err != nil {
 		return nil, "", err
 	}

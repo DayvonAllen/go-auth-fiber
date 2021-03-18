@@ -3,7 +3,6 @@ package services
 import (
 	"example.com/app/domain"
 	"example.com/app/repo"
-	"fmt"
 )
 
 type AuthService interface {
@@ -17,7 +16,7 @@ type DefaultAuthService struct {
 func (a DefaultAuthService) Login(username, password string) (*domain.User, string, error) {
 	u, token, err := a.repo.Login(username, password)
 	if err != nil {
-		return nil, "", fmt.Errorf("error logging in: %w", err)
+		return nil, "", err
 	}
 	return u, token, nil
 }

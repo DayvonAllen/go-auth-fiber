@@ -22,13 +22,12 @@ func Start() {
 	app.Get("/users", func(c *fiber.Ctx) error {
 		cookie := c.Cookies("session")
 
-		u, err := ch.getAllUsers(cookie)
+		u, err := ch.getAllUsers(cookie, c)
 		if err != nil {
-			c.Status(400)
-			return err
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
-		c.Status(200)
-		return c.JSON(u)
+
+		return c.Status(201).JSON(u)
 	})
 
 	app.Get("/users/:id", func(c *fiber.Ctx) error {
@@ -37,58 +36,66 @@ func Start() {
 		id := c.Params("id")
 
 		newId, err := primitive.ObjectIDFromHex(id)
+
 		if err != nil {
-			return err
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		u, err := ch.GetUserByID(cookie, newId)
+		u, err := ch.GetUserByID(cookie, newId, c)
+
 		if err != nil {
-			c.Status(400)
-			return fmt.Errorf("error...%w",  err)
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
-		c.Status(200)
-		return c.JSON(u)
+
+		return c.Status(200).JSON(u)
 	})
 
 	app.Post("/users", func(c *fiber.Ctx) error {
 		user := new(domain.User)
 
-		if err := c.BodyParser(user); err != nil {
-			return err
-		}
+		err := c.BodyParser(user)
 
-		err := ch.CreateUser(*user)
-		for err != nil {
+		if err != nil {
 			c.Status(400)
-			return fmt.Errorf("error...%w",  err)
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		c.Status(201)
-		return c.SendString("Success...")
+		err = ch.CreateUser(*user, c)
+
+		if err != nil {
+			return c.SendString(fmt.Sprintf("%v", err))
+		}
+
+		return c.Status(201).SendString("Success...")
 	})
 
 	app.Post("/users/login", func(c *fiber.Ctx) error {
 		details := new(domain.LoginDetails)
 
-		if err := c.BodyParser(details); err != nil {
-			return err
+		err := c.BodyParser(details)
+
+		if err != nil {
+			c.Status(400)
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		_, err := ch.Login(details.Email, details.Password, c)
-		for err != nil {
-			c.Status(401)
-			return fmt.Errorf("error...%w",  err)
+		_, err = ch.Login(details.Email, details.Password, c)
+
+		if err != nil {
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		c.Status(200)
-		return c.SendString("Logged in")
+		return c.Status(200).SendString("Logged in")
 	})
 
 	app.Post("/users/:id", func(c *fiber.Ctx) error {
 		user := new(domain.User)
 
-		if err := c.BodyParser(user); err != nil {
-			return err
+		err := c.BodyParser(user)
+
+		if err != nil {
+			c.Status(400)
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
 		cookie := c.Cookies("session")
@@ -100,34 +107,32 @@ func Start() {
 			return err
 		}
 
-		err = ch.UpdateUser(newId, *user, cookie)
-		for err != nil {
-			c.Status(500)
-			return fmt.Errorf("error...")
+		err = ch.UpdateUser(newId, *user, cookie, c)
+
+		if err != nil {
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		c.Status(200)
-		return c.SendString("Success...")
+		return c.Status(200).SendString("Success...")
 	})
 
 	app.Delete("/users/:id", func(c *fiber.Ctx) error {
 		cookie := c.Cookies("session")
 
-		id := c.Params("id")
+		id , err := primitive.ObjectIDFromHex(c.Params("id"))
 
-		newId, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
-			return err
+			c.Status(400)
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		err = ch.DeleteByID(cookie, newId)
+		err = ch.DeleteByID(cookie, id, c)
+
 		if err != nil {
-			c.Status(500)
-			return err
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		c.Status(204)
-		return c.SendString("Success...")
+		return c.Status(204).SendString("Success...")
 	})
 
 	log.Fatal(app.Listen(":8080"))

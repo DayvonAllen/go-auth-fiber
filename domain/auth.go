@@ -43,7 +43,7 @@ func (l Authentication) GenerateJWT(msg User) (string, error){
 	signedString, err := token.SignedString([]byte("Helloworld"))
 
 	if err != nil {
-		return "", fmt.Errorf("%w", err)
+		return "", err
 	}
 	return signedString, nil
 }
@@ -56,7 +56,7 @@ func (l Authentication) SignToken(token []byte) ([]byte, error) {
 	// hash is a writer
 	_, err := h.Write(token)
 	if err != nil {
-		return nil, fmt.Errorf("error in signMessage while hashing message: %w", err)
+		return nil, err
 	}
 
 	return []byte(fmt.Sprintf("%x", h.Sum(nil))), nil
@@ -79,11 +79,11 @@ func(l Authentication) IsLoggedIn(cookie string) (*Authentication, error)  {
 
 	validSig, err := l.VerifySignature([]byte(data[0]), []byte(data[1]))
 	if err != nil {
-		return nil, fmt.Errorf("error...: %w", err)
+		return nil, err
 	}
 
 	if !validSig {
-		return nil, fmt.Errorf("invalid signature: %w", err)
+		return nil, err
 	}
 
 	token, err := jwt.ParseWithClaims(data[0], &Claims{},func(t *jwt.Token)(interface{}, error) {
@@ -91,11 +91,11 @@ func(l Authentication) IsLoggedIn(cookie string) (*Authentication, error)  {
 			//verify token(we pass in our key to be verified)
 			return []byte("Helloworld"), nil
 		}
-		return nil, fmt.Errorf("invalid signing method")
+		return nil, err
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("invalid token: %w", err)
+		return nil, err
 	}
 
 	isEqual := token.Valid

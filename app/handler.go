@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"log"
+	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 )
 
@@ -15,74 +15,98 @@ type Handlers struct {
 	authService services.AuthService
 }
 
-func (ch *Handlers) getAllUsers(cookie string) (*[]domain.User, error) {
+func (ch *Handlers) getAllUsers(cookie string, c *fiber.Ctx) (*[]domain.User, error) {
 	var auth domain.Authentication
 	_, err := auth.IsLoggedIn(cookie)
 
 	if err != nil {
-		return nil, fmt.Errorf("unauthorized")
+		c.Status(401)
+		return nil, fmt.Errorf("unauthorized request")
 	}
 
 	users, err := ch.userService.GetAllUsers()
 	if err != nil {
-		log.Panicf("error: %v", err)
+		c.Status(500)
+		return nil, fmt.Errorf("server error, can't get all users: %w", err)
 	}
+
 	return users, nil
 }
 
-func (ch *Handlers) CreateUser(user domain.User) error {
+func (ch *Handlers) CreateUser(user domain.User, c *fiber.Ctx) error {
 	err := ch.userService.CreateUser(&user)
 	if err != nil {
-		return err
+		c.Status(500)
+		return fmt.Errorf("server error, can't create user: %w", err)
 	}
 
 	return nil
 }
 
-func (ch *Handlers) GetUserByID(cookie string, id primitive.ObjectID) (*domain.User, error){
+func (ch *Handlers) GetUserByID(cookie string, id primitive.ObjectID, c *fiber.Ctx) (*domain.User, error){
 	var auth domain.Authentication
 	_, err := auth.IsLoggedIn(cookie)
 
 	if err != nil {
-		return nil, fmt.Errorf("unauthorized")
+		c.Status(401)
+		return nil, fmt.Errorf("unauthorized request")
 	}
 
 	user, err := ch.userService.GetUserByID(id)
 
 	if err != nil {
-		return nil, fmt.Errorf("error...")
+		if err == mongo.ErrNoDocuments {
+			c.Status(404)
+			return nil, fmt.Errorf("server error: %w", err)
+		}
+		c.Status(500)
+		return nil, fmt.Errorf("server error: %w", err)
 	}
 
 	return user, err
 }
 
-func (ch *Handlers) UpdateUser(id primitive.ObjectID, user domain.User, cookie string) error {
+func (ch *Handlers) UpdateUser(id primitive.ObjectID, user domain.User, cookie string, c *fiber.Ctx) error {
 	var auth domain.Authentication
 	_, err := auth.IsLoggedIn(cookie)
 
 	if err != nil {
-		return err
+		c.Status(401)
+		return fmt.Errorf("unauthorized request")
 	}
 
 	_, err = ch.userService.UpdateUser(id, &user)
+
 	if err != nil {
-		return fmt.Errorf("error: %w", err)
+		if err == mongo.ErrNoDocuments {
+			c.Status(404)
+			return fmt.Errorf("server error: %w", err)
+		}
+		c.Status(500)
+		return fmt.Errorf("server error: %w", err)
 	}
 
 	return nil
 }
 
-func (ch *Handlers) DeleteByID(cookie string, id primitive.ObjectID) error {
+func (ch *Handlers) DeleteByID(cookie string, id primitive.ObjectID, c *fiber.Ctx) error {
 	var auth domain.Authentication
 	_, err := auth.IsLoggedIn(cookie)
+
 	if err != nil {
-		return err
+		c.Status(401)
+		return fmt.Errorf("unauthorized request")
 	}
 
 	err = ch.userService.DeleteByID(id)
 
 	if err != nil {
-		return err
+		if err == mongo.ErrNoDocuments {
+			c.Status(404)
+			return fmt.Errorf("server error: %w", err)
+		}
+		c.Status(500)
+		return fmt.Errorf("server error: %w", err)
 	}
 
 	return err
@@ -92,13 +116,20 @@ func (ch *Handlers) Login( email string, password string, c *fiber.Ctx) (*domain
 	var auth domain.Authentication
 
 	u, token, err := ch.authService.Login(email, password)
+
 	if err != nil {
-		return nil, fmt.Errorf("unauthorized")
+		c.Status(500)
+		return nil, fmt.Errorf("server error: %w", err)
 	}
 
 	signedToken := make([]byte, 0, 100)
 	signedToken = append(signedToken, []byte("Bearer " + token + "|")...)
 	t, err := auth.SignToken([]byte(token))
+
+	if err != nil {
+		c.Status(500)
+		return nil, fmt.Errorf("server error: %w", err)
+	}
 
 	signedToken = append(signedToken, t...)
 
