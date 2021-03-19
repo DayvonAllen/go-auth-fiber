@@ -15,16 +15,9 @@ type Handlers struct {
 	authService services.AuthService
 }
 
-func (ch *Handlers) getAllUsers(cookie string, c *fiber.Ctx) (*[]domain.User, error) {
-	var auth domain.Authentication
-	_, err := auth.IsLoggedIn(cookie)
-
-	if err != nil {
-		c.Status(401)
-		return nil, fmt.Errorf("unauthorized request")
-	}
-
+func (ch *Handlers) getAllUsers(c *fiber.Ctx) (*[]domain.User, error) {
 	users, err := ch.userService.GetAllUsers()
+
 	if err != nil {
 		c.Status(500)
 		return nil, fmt.Errorf("server error, can't get all users: %w", err)
@@ -35,6 +28,7 @@ func (ch *Handlers) getAllUsers(cookie string, c *fiber.Ctx) (*[]domain.User, er
 
 func (ch *Handlers) CreateUser(user domain.User, c *fiber.Ctx) error {
 	err := ch.userService.CreateUser(&user)
+
 	if err != nil {
 		c.Status(500)
 		return fmt.Errorf("server error, can't create user: %w", err)
@@ -43,14 +37,7 @@ func (ch *Handlers) CreateUser(user domain.User, c *fiber.Ctx) error {
 	return nil
 }
 
-func (ch *Handlers) GetUserByID(cookie string, id primitive.ObjectID, c *fiber.Ctx) (*domain.User, error){
-	var auth domain.Authentication
-	_, err := auth.IsLoggedIn(cookie)
-
-	if err != nil {
-		c.Status(401)
-		return nil, fmt.Errorf("unauthorized request")
-	}
+func (ch *Handlers) GetUserByID(id primitive.ObjectID, c *fiber.Ctx) (*domain.User, error){
 
 	user, err := ch.userService.GetUserByID(id)
 
@@ -66,16 +53,9 @@ func (ch *Handlers) GetUserByID(cookie string, id primitive.ObjectID, c *fiber.C
 	return user, err
 }
 
-func (ch *Handlers) UpdateUser(id primitive.ObjectID, user domain.User, cookie string, c *fiber.Ctx) error {
-	var auth domain.Authentication
-	_, err := auth.IsLoggedIn(cookie)
+func (ch *Handlers) UpdateUser(id primitive.ObjectID, user domain.User, c *fiber.Ctx) error {
 
-	if err != nil {
-		c.Status(401)
-		return fmt.Errorf("unauthorized request")
-	}
-
-	_, err = ch.userService.UpdateUser(id, &user)
+	_, err := ch.userService.UpdateUser(id, &user)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -89,16 +69,9 @@ func (ch *Handlers) UpdateUser(id primitive.ObjectID, user domain.User, cookie s
 	return nil
 }
 
-func (ch *Handlers) DeleteByID(cookie string, id primitive.ObjectID, c *fiber.Ctx) error {
-	var auth domain.Authentication
-	_, err := auth.IsLoggedIn(cookie)
+func (ch *Handlers) DeleteByID(id primitive.ObjectID, c *fiber.Ctx) error {
 
-	if err != nil {
-		c.Status(401)
-		return fmt.Errorf("unauthorized request")
-	}
-
-	err = ch.userService.DeleteByID(id)
+	err := ch.userService.DeleteByID(id)
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -112,7 +85,7 @@ func (ch *Handlers) DeleteByID(cookie string, id primitive.ObjectID, c *fiber.Ct
 	return err
 }
 
-func (ch *Handlers) Login( email string, password string, c *fiber.Ctx) (*domain.User, error) {
+func (ch *Handlers) Login(email string, password string, c *fiber.Ctx) (*domain.User, error) {
 	var auth domain.Authentication
 
 	u, token, err := ch.authService.Login(email, password)

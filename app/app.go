@@ -1,6 +1,7 @@
 package app
 
 import (
+	"example.com/app/app/helpers"
 	"example.com/app/domain"
 	"example.com/app/repo"
 	"example.com/app/services"
@@ -22,7 +23,13 @@ func Start() {
 	app.Get("/users", func(c *fiber.Ctx) error {
 		cookie := c.Cookies("session")
 
-		u, err := ch.getAllUsers(cookie, c)
+		err := helpers.IsLoggedIn(cookie, c)
+
+		if err != nil {
+			return c.SendString(fmt.Sprintf("%v", err))
+		}
+
+		u, err := ch.getAllUsers(c)
 		if err != nil {
 			return c.SendString(fmt.Sprintf("%v", err))
 		}
@@ -33,15 +40,20 @@ func Start() {
 	app.Get("/users/:id", func(c *fiber.Ctx) error {
 		cookie := c.Cookies("session")
 
-		id := c.Params("id")
-
-		newId, err := primitive.ObjectIDFromHex(id)
+		err := helpers.IsLoggedIn(cookie, c)
 
 		if err != nil {
 			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		u, err := ch.GetUserByID(cookie, newId, c)
+		id, err := primitive.ObjectIDFromHex(c.Params("id"))
+
+		if err != nil {
+			c.Status(400)
+			return c.SendString(fmt.Sprintf("%v", err))
+		}
+
+		u, err := ch.GetUserByID(id, c)
 
 		if err != nil {
 			return c.SendString(fmt.Sprintf("%v", err))
@@ -88,26 +100,32 @@ func Start() {
 		return c.Status(200).SendString("Logged in")
 	})
 
-	app.Post("/users/:id", func(c *fiber.Ctx) error {
-		user := new(domain.User)
+	app.Put("/users/:id", func(c *fiber.Ctx) error {
+		cookie := c.Cookies("session")
 
-		err := c.BodyParser(user)
+		err := helpers.IsLoggedIn(cookie, c)
+
+		if err != nil {
+			return c.SendString(fmt.Sprintf("%v", err))
+		}
+
+		id , err := primitive.ObjectIDFromHex(c.Params("id"))
 
 		if err != nil {
 			c.Status(400)
 			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		cookie := c.Cookies("session")
+		user := new(domain.User)
 
-		id := c.Params("id")
+		err = c.BodyParser(user)
 
-		newId, err := primitive.ObjectIDFromHex(id)
 		if err != nil {
-			return err
+			c.Status(400)
+			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		err = ch.UpdateUser(newId, *user, cookie, c)
+		err = ch.UpdateUser(id, *user, c)
 
 		if err != nil {
 			return c.SendString(fmt.Sprintf("%v", err))
@@ -119,6 +137,12 @@ func Start() {
 	app.Delete("/users/:id", func(c *fiber.Ctx) error {
 		cookie := c.Cookies("session")
 
+		err := helpers.IsLoggedIn(cookie, c)
+
+		if err != nil {
+			return c.SendString(fmt.Sprintf("%v", err))
+		}
+
 		id , err := primitive.ObjectIDFromHex(c.Params("id"))
 
 		if err != nil {
@@ -126,7 +150,7 @@ func Start() {
 			return c.SendString(fmt.Sprintf("%v", err))
 		}
 
-		err = ch.DeleteByID(cookie, id, c)
+		err = ch.DeleteByID(id, c)
 
 		if err != nil {
 			return c.SendString(fmt.Sprintf("%v", err))
