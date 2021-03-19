@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -91,6 +92,10 @@ func (ch *Handlers) Login(email string, password string, c *fiber.Ctx) (*domain.
 	u, token, err := ch.authService.Login(email, password)
 
 	if err != nil {
+		if err == bcrypt.ErrMismatchedHashAndPassword {
+			c.Status(401)
+			return nil, fmt.Errorf("wrong username or password")
+		}
 		c.Status(500)
 		return nil, fmt.Errorf("server error: %w", err)
 	}
@@ -101,7 +106,7 @@ func (ch *Handlers) Login(email string, password string, c *fiber.Ctx) (*domain.
 
 	if err != nil {
 		c.Status(500)
-		return nil, fmt.Errorf("server error: %w", err)
+		return nil, fmt.Errorf("server error")
 	}
 
 	signedToken = append(signedToken, t...)
