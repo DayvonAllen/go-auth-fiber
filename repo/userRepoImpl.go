@@ -81,7 +81,6 @@ func (u UserRepoImpl) FindByID(id primitive.ObjectID) (*domain.User, error) {
 }
 
 func (u UserRepoImpl) UpdateByID(id primitive.ObjectID, user *domain.User) (*domain.User, error) {
-
 	opts := options.FindOneAndUpdate().SetUpsert(true)
 	filter := bson.D{{"_id", id}}
 	update := bson.D{{"$set", bson.D{{"Email", user.Email}}}}

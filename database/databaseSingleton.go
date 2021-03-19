@@ -11,6 +11,7 @@ import (
 type Connection struct {
 	*mongo.Client
 	*mongo.Collection
+	*mongo.Database
 }
 
 var dbConnection *Connection
@@ -34,10 +35,13 @@ func connectToDB() error {
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil { return err }
 
-	//create database and collection
-	userCollection := client.Database("auth-app").Collection("users")
+	// create database
+	db := client.Database("auth-app")
 
-	dbConnection = &Connection{client, userCollection}
+	// create collection
+	userCollection := db.Collection("users")
+
+	dbConnection = &Connection{client, userCollection, db}
 
 	return nil
 }

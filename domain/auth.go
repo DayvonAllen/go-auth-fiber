@@ -30,7 +30,6 @@ type Claims struct {
 }
 
 func (l Authentication) GenerateJWT(msg User) (string, error){
-
 	claims := Claims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(5 * time.Minute).Unix(),
@@ -70,7 +69,6 @@ func (l Authentication) VerifySignature(token, sig []byte) (bool, error) {
 }
 
 func(l Authentication) IsLoggedIn(cookie string) (*Authentication, error)  {
-
 	if cookie == ""  {
 		return nil, fmt.Errorf("no cookie")
 	}
